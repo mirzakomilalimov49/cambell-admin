@@ -17,6 +17,7 @@ import {
   Settings,
   LogOut,
   Bus,
+  Newspaper,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ const menuItems = [
   { icon: Wrench,          label: "Uskunalar",         href: "/uskunalar" },
   { icon: Settings2,       label: "Texnik xizmat",     href: "/texnik-xizmat" },
   { icon: BarChart3,       label: "Hisobotlar",        href: "/hisobotlar" },
+  { icon: Newspaper,       label: "Yangiliklar",       href: "/yangiliklar" },
   { icon: Bot,             label: "AI Assistant",      href: "/ai-assistant" },
   { icon: Settings,        label: "Sozlamalar",        href: "/sozlamalar" },
 ];

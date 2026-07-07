@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Newspaper, Send, CheckCircle2, AlertTriangle, ExternalLink,
-  ImagePlus, X, Trash2, Calendar, Eye,
+  ImagePlus, X, Trash2, Pencil, Save, Calendar, Eye,
 } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
@@ -17,7 +17,7 @@ interface Article {
   date: string;
   views: string;
   image: string;
-  uz?: { title: string };
+  uz?: { title: string; body?: string[] };
   en?: { title: string };
 }
 
@@ -33,8 +33,10 @@ export default function YangiliklarPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const canSend = title.trim().length > 0 && body.trim().length > 0 && !sending;
+  const editingArticle = editingId ? articles.find((a) => a.id === editingId) : undefined;
 
   async function loadArticles() {
     setLoadingList(true);
@@ -75,14 +77,34 @@ export default function YangiliklarPage() {
     setImageName(null);
   }
 
+  function startEdit(a: Article) {
+    setEditingId(a.id);
+    setTitle(a.uz?.title || "");
+    setBody((a.uz?.body || []).join("\n"));
+    removeImage();
+    setStatus(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setTitle("");
+    setBody("");
+    removeImage();
+    setStatus(null);
+  }
+
   async function handleSend() {
     if (!canSend) return;
     setSending(true);
     setStatus(null);
 
+    const url = editingId ? `/api/news/${encodeURIComponent(editingId)}` : "/api/news";
+    const method = editingId ? "PUT" : "POST";
+
     try {
-      const res = await fetch("/api/news", {
-        method: "POST",
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim(), body: body.trim(), image: imageData || undefined }),
       });
@@ -91,10 +113,16 @@ export default function YangiliklarPage() {
       if (!res.ok) {
         setStatus({ type: "error", message: data?.error || "Xatolik yuz berdi" });
       } else {
-        setStatus({ type: "success", message: "Yangilik cambell.uz saytiga muvaffaqiyatli yuborildi." });
+        setStatus({
+          type: "success",
+          message: editingId
+            ? "Yangilik muvaffaqiyatli yangilandi."
+            : "Yangilik cambell.uz saytiga muvaffaqiyatli yuborildi.",
+        });
         setTitle("");
         setBody("");
         removeImage();
+        setEditingId(null);
         loadArticles();
       }
     } catch {
@@ -113,6 +141,7 @@ export default function YangiliklarPage() {
         setStatus({ type: "error", message: data?.error || "O'chirishda xatolik yuz berdi" });
       } else {
         setArticles((prev) => prev.filter((a) => a.id !== id));
+        if (editingId === id) cancelEdit();
       }
     } catch {
       setStatus({ type: "error", message: "Serverga ulanib bo'lmadi. Internetni tekshiring." });
@@ -154,6 +183,17 @@ export default function YangiliklarPage() {
 
             {/* Form */}
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 mb-6">
+              {editingId && (
+                <div className="flex items-center justify-between mb-4 px-3 py-2 bg-sky-50 rounded-xl">
+                  <span className="text-xs font-semibold text-[#0EA5E9] flex items-center gap-1.5">
+                    <Pencil className="w-3.5 h-3.5" /> Yangilikni tahrirlash rejimi
+                  </span>
+                  <button onClick={cancelEdit} className="text-xs font-semibold text-gray-500 hover:text-gray-700">
+                    Bekor qilish
+                  </button>
+                </div>
+              )}
+
               <div className="mb-4">
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Sarlavha</label>
                 <input
@@ -191,6 +231,21 @@ export default function YangiliklarPage() {
                     >
                       <X className="w-4 h-4" />
                     </button>
+                  </div>
+                ) : editingArticle ? (
+                  <div className="flex items-center gap-3 p-2 border border-gray-200 rounded-xl">
+                    <img
+                      src={editingArticle.image}
+                      alt="Joriy rasm"
+                      className="w-16 h-16 rounded-lg object-cover flex-shrink-0 bg-gray-100"
+                    />
+                    <span className="text-xs text-gray-500 flex-1">
+                      Joriy rasm saqlanadi. O'zgartirish uchun yangisini tanlang.
+                    </span>
+                    <label className="text-xs font-semibold text-[#0EA5E9] hover:underline cursor-pointer flex-shrink-0">
+                      O'zgartirish
+                      <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleImagePick} className="hidden" />
+                    </label>
                   </div>
                 ) : (
                   <label className="flex items-center gap-2 px-4 h-10 rounded-xl border border-dashed border-gray-300 text-xs font-medium text-gray-500 hover:border-[#0EA5E9] hover:text-[#0EA5E9] cursor-pointer transition-colors w-fit">
@@ -233,8 +288,14 @@ export default function YangiliklarPage() {
                       : "bg-gray-100 text-gray-400 cursor-not-allowed"
                   )}
                 >
-                  <Send className="w-4 h-4" />
-                  {sending ? "Yuborilmoqda..." : "Yuborish"}
+                  {editingId ? <Save className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                  {sending
+                    ? editingId
+                      ? "Yangilanmoqda..."
+                      : "Yuborilmoqda..."
+                    : editingId
+                      ? "Yangilash"
+                      : "Yuborish"}
                 </button>
               </div>
             </div>
@@ -250,7 +311,13 @@ export default function YangiliklarPage() {
               ) : (
                 <div className="space-y-1">
                   {articles.map((a) => (
-                    <div key={a.id} className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
+                    <div
+                      key={a.id}
+                      className={cn(
+                        "flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0",
+                        editingId === a.id && "bg-sky-50/60 -mx-2 px-2 rounded-lg"
+                      )}
+                    >
                       <img
                         src={a.image}
                         alt=""
@@ -283,13 +350,22 @@ export default function YangiliklarPage() {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => setConfirmingId(a.id)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-[#EF4444] transition-colors flex-shrink-0"
-                          title="O'chirish"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button
+                            onClick={() => startEdit(a)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-sky-50 text-gray-400 hover:text-[#0EA5E9] transition-colors"
+                            title="Tahrirlash"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setConfirmingId(a.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-[#EF4444] transition-colors"
+                            title="O'chirish"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}

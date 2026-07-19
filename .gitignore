@@ -21,6 +21,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# local CRM data (production uses CRM_DATA_DIR on a persistent volume)
+/data
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

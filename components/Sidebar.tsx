@@ -18,11 +18,13 @@ import {
   LogOut,
   Bus,
   Newspaper,
+  Handshake,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Boshqaruv paneli", href: "/" },
+  { icon: Handshake,       label: "CRM Tizimi",       href: "/crm" },
   { icon: ShoppingCart,    label: "Buyurtmalar",       href: "/buyurtmalar" },
   { icon: Factory,         label: "Ishlab chiqarish",  href: "/ishlab-chiqarish" },
   { icon: Map,             label: "Zavod xaritasi",    href: "/zavod-xaritasi" },
